@@ -1,4 +1,4 @@
-package module4;
+package module4.copy;
 
 import de.fhpotsdam.unfolding.data.Feature;
 import de.fhpotsdam.unfolding.data.PointFeature;
@@ -12,7 +12,10 @@ import processing.core.PGraphics;
  * @author Han
  *
  */
-public class CityMarker extends SimplePointMarker {
+//TODO: Change SimplePointMarker to CommonMarker as the very first thing you do 
+//in module 5 (i.e. CityMarker extends CommonMarker).  It will cause an error.
+//That's what's expected.
+public class CityMarker extends CommonMarker {
 	
 	// The size of the triangle marker
 	// It's a good idea to use this variable in your draw method
@@ -32,7 +35,7 @@ public class CityMarker extends SimplePointMarker {
 	/**
 	 * Implementation of method to draw marker on the map.
 	 */
-	public void draw(PGraphics pg, float x, float y) {
+	public void drawMarker(PGraphics pg, float x, float y) {
 		// Save previous drawing style
 		pg.pushStyle();
 		
@@ -47,16 +50,37 @@ public class CityMarker extends SimplePointMarker {
 		// Check out the processing documentation for more methods
 		
 		pg.fill(64, 224, 208);
-		pg.noStroke();
-		pg.triangle(x, y-5, x-4, y+3, x+4, y+3);
+		pg.triangle(x, y-10, x-8, y+6, x+8, y+6);
 		
 		
 		// Restore previous drawing style
 		pg.popStyle();
 	}
 	
-	/* Local getters for some city properties.  You might not need these 
-	 * in module 4. 	 */
+	/** Show the title of the city if this marker is selected */
+	public void showTitle(PGraphics pg, float x, float y)
+	{
+		
+		// TODO: Implement this method
+		// adjustment
+		String name = getCity() + "," + getCountry();
+		String pop = "Pop: "+ getPopulation();
+		pg.textSize(12);
+	    float w = Math.max(pg.textWidth(name), pg.textWidth(pop)) + 10;
+		// background
+	    pg.fill(255, 255, 255);
+	    pg.rect(x, y - 10, w, 40);
+	    // text
+		pg.fill(0);
+	    pg.text(name, x+5 , y);
+	    pg.text(pop, x+5 , y + 15);
+		
+	}
+	
+	
+	
+	/* Local getters for some city properties.  
+	 */
 	public String getCity()
 	{
 		return getStringProperty("name");
@@ -71,5 +95,7 @@ public class CityMarker extends SimplePointMarker {
 	{
 		return Float.parseFloat(getStringProperty("population"));
 	}
-	
+
 }
+
+

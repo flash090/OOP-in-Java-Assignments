@@ -1,6 +1,7 @@
-package module4;
+package module4.copy;
 
 import java.util.ArrayList;
+
 import java.util.List;
 
 import de.fhpotsdam.unfolding.UnfoldingMap;
@@ -14,8 +15,11 @@ import de.fhpotsdam.unfolding.marker.MultiMarker;
 import de.fhpotsdam.unfolding.providers.Google;
 import de.fhpotsdam.unfolding.providers.MBTilesMapProvider;
 import de.fhpotsdam.unfolding.utils.MapUtils;
+import module4.copy.CommonMarker;
 import parsing.ParseFeed;
 import processing.core.PApplet;
+
+import de.fhpotsdam.unfolding.providers.Microsoft;
 
 /** EarthquakeCityMap
  * An application with an interactive map displaying earthquake data.
@@ -39,8 +43,7 @@ public class EarthquakeCityMap extends PApplet {
 	
 	/** This is where to find the local tiles, for working without an Internet connection */
 	public static String mbTilesString = "blankLight-1-3.mbtiles";
-	
-	
+
 
 	//feed with magnitude 2.5+ Earthquakes
 	private String earthquakesURL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.atom";
@@ -60,6 +63,10 @@ public class EarthquakeCityMap extends PApplet {
 	// A List of country markers
 	private List<Marker> countryMarkers;
 	
+	// NEW IN MODULE 5
+	private CommonMarker lastSelected;
+	private CommonMarker lastClicked;
+	
 	public void setup() {		
 		// (1) Initializing canvas and map tiles
 		size(1000, 600);
@@ -69,7 +76,7 @@ public class EarthquakeCityMap extends PApplet {
 		}
 		else {
 			// map = new UnfoldingMap(this, 200, 50, 650, 600, new Google.GoogleMapProvider());
-			map = new UnfoldingMap(this, 0, 0, 1000, 500, new MBTilesMapProvider(mbTilesString));
+			map = new UnfoldingMap(this, 0, 0, 1000, 500, new Microsoft.RoadProvider());
 			// IF YOU WANT TO TEST WITH A LOCAL FILE, uncomment the next line
 		    //earthquakesURL = "2.5_week.atom";
 		}
@@ -130,6 +137,144 @@ public class EarthquakeCityMap extends PApplet {
 		addKey();
 		
 	}
+	
+	/** Event handler that gets called automatically when the 
+	 * mouse moves.
+	 */
+	@Override
+	public void mouseMoved()
+	{
+		// clear the last selection
+		if (lastSelected != null) {
+			lastSelected.setSelected(false);
+			lastSelected = null;
+		
+		}
+		selectMarkerIfHover(quakeMarkers);
+		selectMarkerIfHover(cityMarkers);
+	}
+	
+	// If there is a marker under the cursor, and lastSelected is null 
+	// set the lastSelected to be the first marker found under the cursor
+	// Make sure you do not select two markers.
+	// 
+	private void selectMarkerIfHover(List<Marker> markers)
+	{
+		// TODO: Implement this method
+		if (lastSelected != null) 
+			return;
+		
+		for (Marker mark: markers) {
+			if (mark.isInside(map, mouseX, mouseY)) {
+				lastSelected = (CommonMarker) mark;
+				mark.setSelected(true);
+				break;
+		    }
+		}
+	
+		
+	}
+	
+	/** The event handler for mouse clicks
+	 * It will display an earthquake and its threat circle of cities
+	 * Or if a city is clicked, it will display all the earthquakes 
+	 * where the city is in the threat circle
+	 */
+	@Override
+	public void mouseClicked()
+	{
+		// TODO: Implement this method
+		// Hint: You probably want a helper method or two to keep this code
+		// from getting too long/disorganized
+		
+		if (lastClicked != null) {
+			unhideMarkers();       
+			lastClicked = null;    
+			return;
+		}
+		
+		
+		// When an earthquake’s marker is selected
+		for (Marker emark: quakeMarkers) {
+			if (emark.isInside(map, mouseX, mouseY)) {
+				lastClicked = (CommonMarker) emark;
+				hideMarkers(emark);
+				showcity(emark);
+				return;
+		    }
+		} 
+		// When a city’s marker is selected
+		for (Marker cmark: cityMarkers) {
+			if (cmark.isInside(map, mouseX, mouseY)) {
+				lastClicked = (CommonMarker) cmark;
+				hideMarkers(cmark);
+				showquack(cmark);
+				return;
+			}
+		}
+		
+	}
+	
+	// helper by me 1 
+	private void showcity(Marker emark) {
+		double threat = ((EarthquakeMarker) emark).threatCircle();
+		for (Marker marker: cityMarkers) {
+			double distance = marker.getDistanceTo(emark.getLocation());
+			if (distance <= threat){ 
+				marker.setHidden(false);
+			}
+			else {
+				marker.setHidden(true);
+			}
+	    }
+	}
+	
+	// helper by me 2
+	private void showquack(Marker cmark) {
+		for (Marker marker: quakeMarkers) {
+			double threat = ((EarthquakeMarker) marker).threatCircle();
+			double distance = marker.getDistanceTo(cmark.getLocation());
+			if (distance <= threat){ 
+				marker.setHidden(false);
+			}
+			else {
+				marker.setHidden(true);
+			}
+	    }
+	}
+	
+	// helper by me 3 
+	private void hideMarkers(Marker themark) {
+		
+		for(Marker marker : quakeMarkers) {
+			if (!marker.equals(themark)){
+				marker.setHidden(true);
+			}
+		}
+			
+		for(Marker marker : cityMarkers) {
+			if (!marker.equals(themark)){
+				marker.setHidden(true);
+		    }
+		}
+	}
+	
+
+	// loop over and unhide all markers
+	private void unhideMarkers() {
+		
+		for(Marker marker : quakeMarkers) {
+			marker.setHidden(false);
+		}
+			
+		for(Marker marker : cityMarkers) {
+			marker.setHidden(false);
+		}
+	}
+	
+	
+	
+	
 	
 	// helper method to draw key in GUI
 	// TODO: Update this method as appropriate

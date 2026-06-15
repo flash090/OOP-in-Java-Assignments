@@ -1,4 +1,4 @@
-package module4;
+package module4.copy;
 
 import de.fhpotsdam.unfolding.data.PointFeature;
 import de.fhpotsdam.unfolding.marker.SimplePointMarker;
@@ -10,7 +10,7 @@ import processing.core.PGraphics;
  * @author Han
  *
  */
-public abstract class EarthquakeMarker extends SimplePointMarker
+public abstract class EarthquakeMarker extends CommonMarker
 {
 	
 	// Did the earthquake occur on land?  This will be set by the subclasses.
@@ -18,13 +18,19 @@ public abstract class EarthquakeMarker extends SimplePointMarker
 
 	// SimplePointMarker has a field "radius" which is inherited
 	// by Earthquake marker:
-	// protected float radius;
+	// The radius of the Earthquake marker
+	// You will want to set this in the constructor, either
+	// using the thresholds below, or a continuous function
+	// based on magnitude. 
+	protected float radius;
 	//
 	// You will want to set this in the constructor, either
 	// using the thresholds below, or a continuous function
 	// based on magnitude. 
   
-	
+	// constants for distance
+	protected static final float kmPerMile = 1.6f;
+		
 	
 	/** Greater than or equal to this threshold is a moderate earthquake */
 	public static final float THRESHOLD_MODERATE = 5;
@@ -57,13 +63,16 @@ public abstract class EarthquakeMarker extends SimplePointMarker
 	
 
 	// calls abstract method drawEarthquake and then checks age and draws X if needed
-	public void draw(PGraphics pg, float x, float y) {
+	public void drawMarker(PGraphics pg, float x, float y) {
 		// save previous styling
 		pg.pushStyle();
 			
 		// determine color of marker from depth
 		colorDetermine(pg);
 		
+	    if (isSelected()) {
+	    	pg.noFill();
+	    }
 		// call abstract method implemented in child class to draw marker shape
 		drawEarthquake(pg, x, y);
 		
@@ -80,6 +89,38 @@ public abstract class EarthquakeMarker extends SimplePointMarker
 		pg.popStyle();
 		
 	}
+	
+	/** Show the title of the earthquake if this marker is selected */
+	@Override
+	public void showTitle(PGraphics pg, float x, float y)
+	{
+		// TODO: Implement this method
+		// adjustment
+		String title = getTitle();
+		float w = pg.textWidth(title) + 10;
+		// background
+	    pg.fill(255, 255, 255);
+	    pg.rect(x, y - 10, w, 25);
+	    // text
+		pg.fill(0);
+	    pg.textSize(12);
+	    pg.text(title, x + 5, y);
+	}
+
+	
+	/**
+	 * Return the "threat circle" radius, or distance up to 
+	 * which this earthquake can affect things, for this earthquake.   
+	 * DISCLAIMER: this formula is for illustration purposes
+	 *  only and is not intended to be used for safety-critical 
+	 *  or predictive applications.
+	 */
+	public double threatCircle() {	
+		double miles = 20.0f * Math.pow(1.8, 2*getMagnitude()-5);
+		double km = (miles * kmPerMile);
+		return km;
+	}
+	
 	
 	// determine color of marker from depth, and set pg's fill color 
 	// using the pg.fill method.
@@ -128,6 +169,5 @@ public abstract class EarthquakeMarker extends SimplePointMarker
 	{
 		return isOnLand;
 	}
-	
 	
 }

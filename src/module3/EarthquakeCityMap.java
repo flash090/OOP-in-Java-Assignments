@@ -24,8 +24,8 @@ import parsing.ParseFeed;
 /** EarthquakeCityMap
  * An application with an interactive map displaying earthquake data.
  * Author: UC San Diego Intermediate Software Development MOOC team
- * @author Your name here
- * Date: July 17, 2015
+ * @author Han
+ * Date: Apr 27, 2026
  * */
 public class EarthquakeCityMap extends PApplet {
 
@@ -51,14 +51,14 @@ public class EarthquakeCityMap extends PApplet {
 
 	
 	public void setup() {
-		size(950, 600);
+		size(1000, 600);
 
 		if (offline) {
 		    map = new UnfoldingMap(this, 200, 50, 700, 500, new MBTilesMapProvider(mbTilesString));
 		    earthquakesURL = "2.5_week.atom"; 	// Same feed, saved Aug 7, 2015, for working offline
 		}
 		else {
-			map = new UnfoldingMap(this, 200, 50, 700, 500, new Google.GoogleMapProvider());
+			map = new UnfoldingMap(this, 0, 0, 1000, 500, new MBTilesMapProvider(mbTilesString));
 			// IF YOU WANT TO TEST WITH A LOCAL FILE, uncomment the next line
 			//earthquakesURL = "2.5_week.atom";
 		}
@@ -128,7 +128,7 @@ public class EarthquakeCityMap extends PApplet {
 	    	marker.setColor(blue);
 	    }    
 	    else if (mag > THRESHOLD_LIGHT && mag < THRESHOLD_MODERATE){
-		    	marker.setColor(yellow);
+		    marker.setColor(yellow);
 		}
 	    else {
 	    	marker.setColor(red);
@@ -150,8 +150,35 @@ public class EarthquakeCityMap extends PApplet {
 	// TODO: Implement this method to draw the key
 	private void addKey() 
 	{	
-		
 		// Remember you can use Processing's graphics methods here
+		fill(255);
+	    rect(30, 30, 150, 250);
+	    //
+		fill(0);
+	    textSize(15);
+	    textAlign(LEFT,TOP);
+	    text("Earthquake Key", 50, 50);
+	    // red
+	    fill(255, 0, 0);
+	    ellipse(50, 100, 10, 10);
+	    fill(0);
+	    textSize(12);
+	    textAlign(LEFT, CENTER);
+	    text("5.0+ Moderate", 60, 100);
+	    // yellow
+	    fill(255, 255, 0);
+	    ellipse(50, 150, 10, 10);
+	    fill(0);
+	    textSize(12);
+	    textAlign(LEFT, CENTER);
+	    text("4.0-4.9 Light", 60, 150);
+	    // blue
+	    fill(0, 0, 255);
+	    ellipse(50, 200, 10, 10);
+	    fill(0);
+	    textSize(12);
+	    textAlign(LEFT, CENTER);
+	    text("<4.0", 60, 200);
 	
 	}
 }

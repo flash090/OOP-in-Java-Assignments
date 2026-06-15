@@ -1,3 +1,6 @@
+# UCSDUnfoldingMaps  
+  
+
 unfolding_app_template and UC San Diego/Coursera MOOC starter code
 ==================================================================
 
@@ -41,4 +44,60 @@ My notes
 ======================
 Applications/Eclipse/oop/UCSDUnfoldingMaps
 
+module4:  
+
+```
+Marker (interface)  
+    └── AbstractMarker (abstract)  
+            └── SimplePointMarker  
+                    ├── EarthquakeMarker (abstract)  
+                    │       ├── LandQuakeMarker  
+                    │       └── OceanQuakeMarker  
+                    └── CityMarker  
+```
+                    
+                    
+@startuml
+
+interface Marker
+
+abstract class AbstractMarker implements Marker
+
+class SimplePointMarker extends AbstractMarker
+
+abstract class EarthquakeMarker extends SimplePointMarker
+
+class CityMarker extends SimplePointMarker
+
+class LandQuakeMarker extends EarthquakeMarker
+
+class OceanQuakeMarker extends EarthquakeMarker
+
+@enduml  
+
+module5:
+
+```
+Marker (interface)
+└── AbstractMarker (abstract)
+    └── SimplePointMarker
+        └── CommonMarker (abstract)
+            ├── EarthquakeMarker (abstract)
+            │   ├── LandQuakeMarker
+            │   └── OceanQuakeMarker
+            └── CityMarker
+```
+@startuml
+
+abstract class CommonMarker extends SimplePointMarker
+
+abstract class EarthquakeMarker extends CommonMarker
+
+class CityMarker extends CommonMarker
+
+class LandQuakeMarker extends EarthquakeMarker
+
+class OceanQuakeMarker extends EarthquakeMarker
+
+@enduml
 
