@@ -1,0 +1,35 @@
+# 忽略 Eclipse 自动生成的构建输出目录
+build/
+bin/
+target/
+
+# 忽略系统自动生成的临时文件
+.DS_Store
+Thumbs.db
+
+# 忽略可能带有敏感信息的本地配置文件（可选）
+
+# 递归忽略所有目录下的 macOS 文件
+**/.DS_Store
+
+# Java 编译产物（防止 src 外漏出 .class）
+*.class
+
+# Processing / Unfolding 运行生成的 applet HTML
+*.html
+
+# 本地草稿、备份（git status 里出现过类似文件）
+* copy.java
+*copy.java
+**/copy/
+
+
+# 其他 IDE（若会用 IntelliJ）
+.idea/
+*.iml
+
+# Eclipse workspace 元数据（若在项目根目录生成）
+.metadata/
+
+# 日志
+*.log

@@ -1,16 +1,18 @@
 package module6;
 
 import de.fhpotsdam.unfolding.data.PointFeature;
-import processing.core.PConstants;
+import de.fhpotsdam.unfolding.marker.SimplePointMarker;
 import processing.core.PGraphics;
 
 /** Implements a visual marker for earthquakes on an earthquake map
  * 
  * @author UC San Diego Intermediate Software Development MOOC team
+ * @author Han
  *
  */
-// TODO: Implement the comparable interface
-public abstract class EarthquakeMarker extends CommonMarker
+
+//TODO: Implement the comparable interface
+public abstract class EarthquakeMarker extends CommonMarker implements Comparable<EarthquakeMarker>
 {
 	
 	// Did the earthquake occur on land?  This will be set by the subclasses.
@@ -21,10 +23,10 @@ public abstract class EarthquakeMarker extends CommonMarker
 	// using the thresholds below, or a continuous function
 	// based on magnitude. 
 	protected float radius;
-	
-	
+
 	// constants for distance
 	protected static final float kmPerMile = 1.6f;
+		
 	
 	/** Greater than or equal to this threshold is a moderate earthquake */
 	public static final float THRESHOLD_MODERATE = 5;
@@ -56,11 +58,22 @@ public abstract class EarthquakeMarker extends CommonMarker
 	}
 	
 	// TODO: Add the method:
-	// public int compareTo(EarthquakeMarker marker)
+	public int compareTo(EarthquakeMarker marker) {
+		float thisMagnitude = this.getMagnitude();
+		float markerMagnitude = marker.getMagnitude();
+		if (thisMagnitude < markerMagnitude) {
+			return 1;
+		}
+		else if (thisMagnitude > markerMagnitude) {
+			return -1;
+		}
+		else {
+			return 0;
+		}
+	}
 	
-	
+
 	// calls abstract method drawEarthquake and then checks age and draws X if needed
-	@Override
 	public void drawMarker(PGraphics pg, float x, float y) {
 		// save previous styling
 		pg.pushStyle();
@@ -68,50 +81,39 @@ public abstract class EarthquakeMarker extends CommonMarker
 		// determine color of marker from depth
 		colorDetermine(pg);
 		
+	    if (isSelected()) {
+	    	pg.noFill();
+	    }
 		// call abstract method implemented in child class to draw marker shape
 		drawEarthquake(pg, x, y);
 		
-		// IMPLEMENT: add X over marker if within past day		
+		// OPTIONAL draw X over marker if within past day		
 		String age = getStringProperty("age");
-		if ("Past Hour".equals(age) || "Past Day".equals(age)) {
-			
-			pg.strokeWeight(2);
-			int buffer = 2;
-			pg.line(x-(radius+buffer), 
-					y-(radius+buffer), 
-					x+radius+buffer, 
-					y+radius+buffer);
-			pg.line(x-(radius+buffer), 
-					y+(radius+buffer), 
-					x+radius+buffer, 
-					y-(radius+buffer));
-			
-		}
-		
+		float r = radius / 1.5f;
+	    if (age.equals("Past Hour") || age.equals("Past Day")) {
+	    	pg.stroke(0,0,0);
+	        pg.line(x - r, y - r, x + r, y + r);
+	        pg.line(x + r, y - r, x - r, y + r);
+	    }
+
 		// reset to previous styling
 		pg.popStyle();
 		
 	}
-
+	
 	/** Show the title of the earthquake if this marker is selected */
+	@Override
 	public void showTitle(PGraphics pg, float x, float y)
 	{
 		String title = getTitle();
-		pg.pushStyle();
-		
-		pg.rectMode(PConstants.CORNER);
-		
-		pg.stroke(110);
-		pg.fill(255,255,255);
-		pg.rect(x, y + 15, pg.textWidth(title) +6, 18, 5);
-		
-		pg.textAlign(PConstants.LEFT, PConstants.TOP);
+		float w = pg.textWidth(title) + 10;
+		// background
+	    pg.fill(255, 255, 255);
+	    pg.rect(x, y - 10, w, 25);
+	    // text
 		pg.fill(0);
-		pg.text(title, x + 3 , y +18);
-		
-		
-		pg.popStyle();
-		
+	    pg.textSize(12);
+	    pg.text(title, x + 5, y);
 	}
 
 	
@@ -128,22 +130,25 @@ public abstract class EarthquakeMarker extends CommonMarker
 		return km;
 	}
 	
-	// determine color of marker from depth
-	// We use: Deep = red, intermediate = blue, shallow = yellow
-	private void colorDetermine(PGraphics pg) {
-		float depth = getDepth();
-		
-		if (depth < THRESHOLD_INTERMEDIATE) {
-			pg.fill(255, 255, 0);
-		}
-		else if (depth < THRESHOLD_DEEP) {
-			pg.fill(0, 0, 255);
-		}
-		else {
-			pg.fill(255, 0, 0);
-		}
-	}
 	
+	// determine color of marker from depth, and set pg's fill color 
+	// using the pg.fill method.
+	// We suggest: Deep = red, intermediate = blue, shallow = yellow
+	// But this is up to you, of course.
+	// You might find the getters below helpful.
+	private void colorDetermine(PGraphics pg) {
+	    float depth = getDepth();
+	    
+	    if (depth < THRESHOLD_INTERMEDIATE){
+	    	pg.fill(255,227,132); // shallow
+	    }
+	    else if (depth < THRESHOLD_DEEP) {
+	    	pg.fill(255,153,18); // intermediate
+	    }
+	    else {
+	    	pg.fill(255,97,3); // deep
+	    }
+	}
 	
 	/** toString
 	 * Returns an earthquake marker's string representation
@@ -153,6 +158,8 @@ public abstract class EarthquakeMarker extends CommonMarker
 	{
 		return getTitle();
 	}
+
+	
 	/*
 	 * getters for earthquake properties
 	 */
@@ -178,8 +185,5 @@ public abstract class EarthquakeMarker extends CommonMarker
 	{
 		return isOnLand;
 	}
-	
-
-	
 	
 }

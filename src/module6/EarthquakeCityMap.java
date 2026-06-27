@@ -15,14 +15,20 @@ import de.fhpotsdam.unfolding.marker.MultiMarker;
 import de.fhpotsdam.unfolding.providers.Google;
 import de.fhpotsdam.unfolding.providers.MBTilesMapProvider;
 import de.fhpotsdam.unfolding.utils.MapUtils;
+import de.fhpotsdam.unfolding.utils.ScreenPosition;
 import parsing.ParseFeed;
 import processing.core.PApplet;
+
+import de.fhpotsdam.unfolding.providers.Microsoft;
+// new for m6 extension
+import de.fhpotsdam.unfolding.utils.ScreenPosition;
+import de.fhpotsdam.unfolding.geo.Location;
 
 /** EarthquakeCityMap
  * An application with an interactive map displaying earthquake data.
  * Author: UC San Diego Intermediate Software Development MOOC team
- * @author Your name here
- * Date: July 17, 2015
+ * @author Han
+ * Date: June,2026 
  * */
 public class EarthquakeCityMap extends PApplet {
 	
@@ -65,27 +71,35 @@ public class EarthquakeCityMap extends PApplet {
 	private CommonMarker lastSelected;
 	private CommonMarker lastClicked;
 	
+	// new for MODULE 6 extension
+	private CommonMarker firstSelected = null;
+	private CommonMarker secondSelected = null;
+	private double displayDistance = -1;
+	
+	
 	public void setup() {		
 		// (1) Initializing canvas and map tiles
-		size(900, 700, OPENGL);
+		size(1000, 600);
 		if (offline) {
 		    map = new UnfoldingMap(this, 200, 50, 650, 600, new MBTilesMapProvider(mbTilesString));
 		    earthquakesURL = "2.5_week.atom";  // The same feed, but saved August 7, 2015
 		}
 		else {
-			map = new UnfoldingMap(this, 200, 50, 650, 600, new Google.GoogleMapProvider());
+			// map = new UnfoldingMap(this, 200, 50, 650, 600, new Google.GoogleMapProvider());
+			map = new UnfoldingMap(this, 0, 0, 1000, 500, new Microsoft.RoadProvider());
 			// IF YOU WANT TO TEST WITH A LOCAL FILE, uncomment the next line
 		    //earthquakesURL = "2.5_week.atom";
 		}
+		map.zoomToLevel(2);
 		MapUtils.createDefaultEventDispatcher(this, map);
 		
 		// FOR TESTING: Set earthquakesURL to be one of the testing files by uncommenting
 		// one of the lines below.  This will work whether you are online or offline
-		//earthquakesURL = "test1.atom";
-		//earthquakesURL = "test2.atom";
+		// earthquakesURL = "test1.atom";
+		// earthquakesURL = "test2.atom";
 		
 		// Uncomment this line to take the quiz
-		//earthquakesURL = "quiz2.atom";
+		// earthquakesURL = "quiz2.atom";
 		
 		
 		// (2) Reading in earthquake data and geometric properties
@@ -116,13 +130,16 @@ public class EarthquakeCityMap extends PApplet {
 	    }
 
 	    // could be used for debugging
-	    printQuakes();
+	    // printQuakes();
 	 		
 	    // (3) Add markers to map
 	    //     NOTE: Country markers are not added to the map.  They are used
 	    //           for their geometric properties
 	    map.addMarkers(quakeMarkers);
 	    map.addMarkers(cityMarkers);
+	    
+	    
+	    sortAndPrint(10);
 	    
 	    
 	}  // End setup
@@ -132,13 +149,24 @@ public class EarthquakeCityMap extends PApplet {
 		background(0);
 		map.draw();
 		addKey();
+		drawDistance();
 		
 	}
 	
 	
 	// TODO: Add the method:
-	//   private void sortAndPrint(int numToPrint)
 	// and then call that method from setUp
+	private void sortAndPrint(int numToPrint) {
+		EarthquakeMarker[] sortquakes = quakeMarkers.toArray(new EarthquakeMarker[0]);
+		java.util.Arrays.sort(sortquakes);
+		if (numToPrint > sortquakes.length) {
+			numToPrint = sortquakes.length;
+		}
+		for (int i = 0; i < numToPrint; i++) {
+		    System.out.println(sortquakes[i]);
+		}
+	}
+
 	
 	/** Event handler that gets called automatically when the 
 	 * mouse moves.
@@ -184,72 +212,132 @@ public class EarthquakeCityMap extends PApplet {
 	@Override
 	public void mouseClicked()
 	{
-		if (lastClicked != null) {
-			unhideMarkers();
-			lastClicked = null;
-		}
-		else if (lastClicked == null) 
-		{
-			checkEarthquakesForClick();
-			if (lastClicked == null) {
-				checkCitiesForClick();
+	    // clicked on an earthquake marker
+	    for (Marker emark : quakeMarkers) {
+	        if (emark.isInside(map, mouseX, mouseY)) {
+	            // reset display before showing new selection
+	            if (lastClicked != null) {
+	                unhideMarkers();
+	            }
+	            lastClicked = (CommonMarker) emark;
+	            showcity(emark);
+	        	// new for MODULE 6 extension
+	            checkdrawDistance((CommonMarker) emark);
+	            return;
+	        }
+	    }
+
+	    // clicked on a city marker
+	    for (Marker cmark : cityMarkers) {
+	        if (cmark.isInside(map, mouseX, mouseY)) {
+	            // reset display before showing new selection
+	            if (lastClicked != null) {
+	                unhideMarkers();
+	            }
+	            lastClicked = (CommonMarker) cmark;
+	            showquack(cmark);
+	            checkdrawDistance((CommonMarker) cmark);
+	            return;
+	        }
+	    }
+
+	    // clicked on blank area — reset everything
+	    resetAll();
+	}
+	
+	// new for MODULE 6 extension
+	
+	// reset all state to initial
+	private void resetAll() {
+	    unhideMarkers();
+	    lastClicked = null;
+	    firstSelected = null;
+	    secondSelected = null;
+	    displayDistance = -1;
+	}
+	
+	    
+	// handle distance feature logic
+	private void checkdrawDistance(CommonMarker clicked) {
+	    if (firstSelected == null) {
+	        // first click — set start point
+	        firstSelected = clicked;
+	        displayDistance = -1;
+	    } else if (clicked != firstSelected) {
+	        // second click on different marker — set end point and calculate
+	        secondSelected = clicked;
+	        displayDistance = firstSelected.getDistanceTo(
+	            secondSelected.getLocation()
+	        );
+	    } else {
+	        // clicked same marker again — reset distance selection
+	        firstSelected = null;
+	        secondSelected = null;
+	        displayDistance = -1;
+	    }
+	}
+	
+	// helper by me 1 at m5
+	private void showcity(Marker emark) {
+		double threat = ((EarthquakeMarker) emark).threatCircle();
+		for (Marker marker: cityMarkers) {
+			double distance = marker.getDistanceTo(emark.getLocation());
+			if (distance > threat){ 
+				marker.setHidden(true);
 			}
+	    }
+		for (Marker marker : quakeMarkers) {
+	        if (marker != emark) {
+	        	marker.setHidden(true);
+	        }
 		}
 	}
 	
-	// Helper method that will check if a city marker was clicked on
-	// and respond appropriately
-	private void checkCitiesForClick()
-	{
-		if (lastClicked != null) return;
-		// Loop over the earthquake markers to see if one of them is selected
-		for (Marker marker : cityMarkers) {
-			if (!marker.isHidden() && marker.isInside(map, mouseX, mouseY)) {
-				lastClicked = (CommonMarker)marker;
-				// Hide all the other earthquakes and hide
-				for (Marker mhide : cityMarkers) {
-					if (mhide != lastClicked) {
-						mhide.setHidden(true);
-					}
-				}
-				for (Marker mhide : quakeMarkers) {
-					EarthquakeMarker quakeMarker = (EarthquakeMarker)mhide;
-					if (quakeMarker.getDistanceTo(marker.getLocation()) 
-							> quakeMarker.threatCircle()) {
-						quakeMarker.setHidden(true);
-					}
-				}
-				return;
+	// helper by me 2 at m5
+	private void showquack(Marker cmark) {
+		for (Marker marker: quakeMarkers) {
+			double threat = ((EarthquakeMarker) marker).threatCircle();
+			double distance = marker.getDistanceTo(cmark.getLocation());
+			if (distance > threat){ 
+				marker.setHidden(true);
 			}
-		}		
-	}
-	
-	// Helper method that will check if an earthquake marker was clicked on
-	// and respond appropriately
-	private void checkEarthquakesForClick()
-	{
-		if (lastClicked != null) return;
-		// Loop over the earthquake markers to see if one of them is selected
-		for (Marker m : quakeMarkers) {
-			EarthquakeMarker marker = (EarthquakeMarker)m;
-			if (!marker.isHidden() && marker.isInside(map, mouseX, mouseY)) {
-				lastClicked = marker;
-				// Hide all the other earthquakes and hide
-				for (Marker mhide : quakeMarkers) {
-					if (mhide != lastClicked) {
-						mhide.setHidden(true);
-					}
-				}
-				for (Marker mhide : cityMarkers) {
-					if (mhide.getDistanceTo(marker.getLocation()) 
-							> marker.threatCircle()) {
-						mhide.setHidden(true);
-					}
-				}
-				return;
-			}
+	    }
+		for(Marker marker : cityMarkers) {
+			if (marker != cmark){
+				marker.setHidden(true);
+		    }
 		}
 	}
+
+		
+	// new for MODULE 6 extension 
+    // draw distance label on map — call at end of draw()
+	private void drawDistance() {
+	    if (displayDistance < 0 || firstSelected == null || secondSelected == null) return;
+
+	    ScreenPosition pos1 = map.getScreenPosition(firstSelected.getLocation());
+	    ScreenPosition pos2 = map.getScreenPosition(secondSelected.getLocation());
+
+	    float midX = (pos1.x + pos2.x) / 2;
+	    float midY = (pos1.y + pos2.y) / 2;
+
+	    pushStyle();    // save current style
+	    
+	    stroke(0, 0, 0);
+	    strokeWeight(1);
+	    line(pos1.x, pos1.y, pos2.x, pos2.y);
+	    
+	    fill(255, 255, 255);
+	    rect(midX - 70, midY - 20, 140, 25);
+	    fill(0);
+	    textSize(13);
+	    textAlign(CENTER);
+	    text(String.format("%.2f km", displayDistance), midX, midY - 2);
+	    
+	    popStyle();     // restore original style
+	}
+
+
 	
 	// loop over and unhide all markers
 	private void unhideMarkers() {
@@ -265,66 +353,67 @@ public class EarthquakeCityMap extends PApplet {
 	// helper method to draw key in GUI
 	private void addKey() {	
 		// Remember you can use Processing's graphics methods here
-		fill(255, 250, 240);
-		
-		int xbase = 25;
-		int ybase = 50;
-		
-		rect(xbase, ybase, 150, 250);
-		
-		fill(0);
-		textAlign(LEFT, CENTER);
-		textSize(12);
-		text("Earthquake Key", xbase+25, ybase+25);
-		
-		fill(150, 30, 30);
-		int tri_xbase = xbase + 35;
-		int tri_ybase = ybase + 50;
-		triangle(tri_xbase, tri_ybase-CityMarker.TRI_SIZE, tri_xbase-CityMarker.TRI_SIZE, 
-				tri_ybase+CityMarker.TRI_SIZE, tri_xbase+CityMarker.TRI_SIZE, 
-				tri_ybase+CityMarker.TRI_SIZE);
-
-		fill(0, 0, 0);
-		textAlign(LEFT, CENTER);
-		text("City Marker", tri_xbase + 15, tri_ybase);
-		
-		text("Land Quake", xbase+50, ybase+70);
-		text("Ocean Quake", xbase+50, ybase+90);
-		text("Size ~ Magnitude", xbase+25, ybase+110);
-		
 		fill(255, 255, 255);
-		ellipse(xbase+35, 
-				ybase+70, 
-				10, 
-				10);
-		rect(xbase+35-5, ybase+90-5, 10, 10);
+		rect(25, 50, 175, 270);
 		
-		fill(color(255, 255, 0));
-		ellipse(xbase+35, ybase+140, 12, 12);
-		fill(color(0, 0, 255));
-		ellipse(xbase+35, ybase+160, 12, 12);
-		fill(color(255, 0, 0));
-		ellipse(xbase+35, ybase+180, 12, 12);
-		
-		textAlign(LEFT, CENTER);
-		fill(0, 0, 0);
-		text("Shallow", xbase+50, ybase+140);
-		text("Intermediate", xbase+50, ybase+160);
-		text("Deep", xbase+50, ybase+180);
+		// title
+	    fill(0);
+	    textAlign(LEFT, CENTER);
+	    textSize(12);
+	    text("Earthquake Key", 40, 75);
 
-		text("Past hour", xbase+50, ybase+200);
-		
-		fill(255, 255, 255);
-		int centerx = xbase+35;
-		int centery = ybase+200;
-		ellipse(centerx, centery, 12, 12);
+	    // 1 City Marker
+	    fill(64, 224, 208);
+	    triangle(50, 102, 43, 115, 57, 115);
+	    fill(0, 0, 0);
+	    text("City Marker", 70, 108);
 
-		strokeWeight(2);
-		line(centerx-8, centery-8, centerx+8, centery+8);
-		line(centerx-8, centery+8, centerx+8, centery-8);
-		
+	    // 2 Land Quake
+	    fill(255, 255, 255);
+	    ellipse(50, 135, 12, 12);
+	    fill(0, 0, 0);
+	    text("Land Quake", 70, 135);
+
+	    // 3 Ocean Quake
+	    fill(255, 255, 255);
+	    rect(44, 156, 12, 12);
+	    fill(0, 0, 0);
+	    text("Ocean Quake", 70, 162);
+
+	    // text
+	    text("Size ~ Magnitude", 40, 190);
+
+	    // newline
+
+	    // 4 shallow color
+	    fill(255, 227, 132);
+	    ellipse(50, 215, 12, 12);
+	    fill(0, 0, 0);
+	    text("Shallow", 70, 215);
+
+	    // 5 intermediate color
+	    fill(255, 153, 18);
+	    ellipse(50, 240, 12, 12);
+	    fill(0, 0, 0);
+	    text("Intermediate", 70, 240);
+
+	    // 6 deep color
+	    fill(255, 97, 3);
+	    ellipse(50, 265, 12, 12);
+	    fill(0, 0, 0);
+	    text("Deep", 70, 265);
+	    
+		// 7 past mark
+	    fill(255, 255, 255);
+	    ellipse(50, 290, 12, 12);
+	    line(44, 284, 56, 296);
+	    line(56, 284, 44, 296);
+	    fill(0, 0, 0);
+	    text("Past Hour", 70, 290);
 		
 	}
+
+	
 
 	
 	
